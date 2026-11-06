@@ -12,7 +12,7 @@ class Inventario:
         with self.condition:
             while self.stock.get(producto, 0) < unidades:
                 with print_lock:
-                    print(f"[Caja {id_caja}] ⏳ Esperando stock para {unidades}x '{producto}' (Pedido {num_pedido})...")
+                    print(f"[Caja {id_caja}] Esperando stock para {unidades}x '{producto}' (Pedido {num_pedido})...")
                 self.condition.wait()
             self.stock[producto] -= unidades
         with terminal_semaphore:
@@ -24,7 +24,7 @@ class Inventario:
         with self.condition:
             self.stock[producto] = self.stock.get(producto, 0) + unidades
             with print_lock:
-                print(f"[ALMACÉN] 📦 Reposición: +{unidades}x '{producto}' | Stock actual: {self.stock[producto]}")
+                print(f"[ALMACÉN] Reposición: +{unidades}x '{producto}' | Stock actual: {self.stock[producto]}")
             self.condition.notify_all()
     def mostrar_inventario(self):
         print("\n------ Inventario Final (Con Condition y Reposición) ------")
