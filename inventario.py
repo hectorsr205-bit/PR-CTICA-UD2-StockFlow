@@ -26,7 +26,7 @@ class Inventario:
             self.stock[producto] = self.stock.get(producto, 0) + unidades
             self.condition.notify_all()
     def mostrar_inventario(self):
-        print("\n------ Inventario Final (Con RLock) ------")
+        print("\n------ Inventario Final (Prevencion de Deadlock) ------")
         for producto, cantidad in self.stock.items():
             print(f" {producto.capitalize()}: {cantidad} unidades")
         print("-" * 52)
@@ -47,7 +47,7 @@ def tarea_revisor(id_revisor, productos_asignados, inventario_obj, barrera):
     barrera.wait()
 def main():
     print("==================================================")
-    print(" FASE 6: REFACTORIZACION CON RLOCK                ")
+    print(" FASE 7: PREVENCION DE DEADLOCK                   ")
     print("==================================================")
     print(f"Numero de cajas (hilos): {NUM_CAJAS}")
     print(f"Terminales de cobro simultaneos: {NUM_TERMINALES}")
