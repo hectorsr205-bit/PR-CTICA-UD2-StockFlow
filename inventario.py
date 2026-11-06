@@ -6,28 +6,27 @@ terminal_semaphore = threading.Semaphore(NUM_TERMINALES)
 class Inventario:
     def __init__(self, stock_base):
         self.stock = dict(stock_base)
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.condition = threading.Condition(self.lock)
+    def _actualizar_stock(self, producto, unidades):
+        with self.lock:
+            self.stock[producto] = self.stock.get(producto, 0) - unidades
     def procesar_pedido(self, id_caja, num_pedido, producto, unidades):
         with self.condition:
             while self.stock.get(producto, 0) < unidades:
-                with print_lock:
-                    print(f"[Caja {id_caja}] Esperando stock para {unidades}x '{producto}' (Pedido {num_pedido})...")
                 self.condition.wait()
-            self.stock[producto] -= unidades
+            self._actualizar_stock(producto, unidades)
         with terminal_semaphore:
             time.sleep(0.0002)
             with print_lock:
-                print(f"[Caja {id_caja} Éxito ({num_pedido}): Vendidos {unidades}x '{producto}' | Quedan: {self.stock[producto]}]")
+                print(f"[Caja {id_caja} exito ({num_pedido}): vendidos {unidades}x '{producto}' | quedan: {self.stock[producto]}]")
         return True
     def reponer_stock(self, producto, unidades):
         with self.condition:
             self.stock[producto] = self.stock.get(producto, 0) + unidades
-            with print_lock:
-                print(f"[ALMACÉN] Reposición: +{unidades}x '{producto}' | Stock actual: {self.stock[producto]}")
             self.condition.notify_all()
     def mostrar_inventario(self):
-        print("\n------ Inventario Final (Con Barrier) ------")
+        print("\n------ Inventario Final (Con RLock) ------")
         for producto, cantidad in self.stock.items():
             print(f" {producto.capitalize()}: {cantidad} unidades")
         print("-" * 52)
@@ -39,25 +38,22 @@ def tarea_almacen(reposiciones_lote, inventario_obj):
         time.sleep(0.0005)
         inventario_obj.reponer_stock(producto, unidades)
 def tarea_revisor(id_revisor, productos_asignados, inventario_obj, barrera):
-    with print_lock:
-        print(f"[Revisor {id_revisor}] Iniciando revisión de su sección...")
     time.sleep(0.001)
     with inventario_obj.lock:
         for p in productos_asignados:
             cant = inventario_obj.stock.get(p, 0)
             with print_lock:
                 print(f"[Revisor {id_revisor}] Producto '{p}': {cant} unidades verificadas.")
-    with print_lock:
-        print(f"[Revisor {id_revisor}] Esperando al resto de revisores en la barrera...")
     barrera.wait()
 def main():
     print("==================================================")
-    print(" FASE 5: REVISIÓN FINAL CON BARRIER               ")
+    print(" FASE 6: REFACTORIZACION CON RLOCK                ")
     print("==================================================")
-    print(f"Número de cajas (hilos): {NUM_CAJAS}")
-    print(f"Terminales de cobro simultáneos: {NUM_TERMINALES}")
-    print(f"Número de revisores: {NUM_REVISORES}")
+    print(f"Numero de cajas (hilos): {NUM_CAJAS}")
+    print(f"Terminales de cobro simultaneos: {NUM_TERMINALES}")
+    print(f"Numero de revisores: {NUM_REVISORES}")
     print(f"Total de pedidos a procesar: {len(PEDIDOS)}")
+    print(f"Total de reposiciones: {len(REPOSICIONES)}")
     print("-" * 50)
     mi_inventario = Inventario(STOCK_INICIAL)
     lotes_pedidos = [[] for _ in range(NUM_CAJAS)]
@@ -98,7 +94,7 @@ def main():
     barrera.wait()
     fin_tiempo = time.time()
     print("-" * 50)
-    print(f"Simulación y revisiones finalizadas en {fin_tiempo - inicio_tiempo:.4f} segundos.")
+    print(f"Simulacion finalizada en {fin_tiempo - inicio_tiempo:.4f} segundos.")
     mi_inventario.mostrar_inventario()
 if __name__ == "__main__":
     main()
