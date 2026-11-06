@@ -5,11 +5,17 @@ print_lock = threading.Lock()
 class Inventario:
     def __init__(self, stock_base):
         self.stock = dict(stock_base)
+        self.lock = threading.Lock()
     def procesar_pedido(self, id_caja, num_pedido, producto, unidades):
-        stock_actual = self.stock.get(producto, 0)
-        time.sleep(0.0001)
-        if stock_actual >= unidades:
-            self.stock[producto] = stock_actual - unidades
+        with self.lock:
+            stock_actual = self.stock.get(producto, 0)
+            time.sleep(0.0001)
+            if stock_actual >= unidades:
+                self.stock[producto] = stock_actual - unidades
+                exito = True
+            else:
+                exito = False
+        if exito:
             with print_lock:
                 print(f"[Caja {id_caja} Éxito ({num_pedido}): Vendidos {unidades}x '{producto}' | Quedan: {self.stock[producto]}]")
             return True
@@ -18,7 +24,7 @@ class Inventario:
                 print(f"[Caja {id_caja} Fallido ({num_pedido}): Stock insuficiente para {unidades}x '{producto}' (Quedaban {stock_actual})]")
             return False
     def mostrar_inventario(self):
-        print("\n------ Inventario Final (Sin Locks) ------")
+        print("\n------ Inventario Final (Con Lock) ------")
         for producto, cantidad in self.stock.items():
             print(f" {producto.capitalize()}: {cantidad} unidades")
         print("-" * 42)
@@ -27,7 +33,7 @@ def tarea_caja(id_caja, sublista_pedidos, inventario_obj):
         inventario_obj.procesar_pedido(id_caja, num_pedido, producto, unidades)
 def main():
     print("==================================================")
-    print(" FASE 1: CONDICIÓN DE CARRERA (SIN LOCKS)         ")
+    print(" FASE 2: PROTECCIÓN CON LOCK                      ")
     print("==================================================")
     print(f"Número de cajas (hilos): {NUM_CAJAS}")
     print(f"Total de pedidos a procesar: {len(PEDIDOS)}")
